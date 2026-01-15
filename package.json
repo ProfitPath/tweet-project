@@ -1,0 +1,31 @@
+{
+  "name": "claude-terminal-clone",
+  "version": "1.0.0",
+  "description": "A basic clone of the Claude Code terminal interface",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "claude-clone": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.tsx"
+  },
+  "keywords": ["cli", "terminal", "claude"],
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "ink": "^4.4.1",
+    "ink-text-input": "^5.0.1",
+    "marked": "^9.1.6",
+    "marked-terminal": "^6.1.0",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  }
+}
