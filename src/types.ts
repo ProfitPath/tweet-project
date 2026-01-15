@@ -19,6 +19,7 @@ export interface ConversationState {
   model: string;
   tokensUsed: number;
   currentDirectory: string;
+  compactMode: boolean;
 }
 
 export interface SlashCommand {

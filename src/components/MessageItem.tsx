@@ -5,9 +5,10 @@ import { formatMarkdown } from '../utils/markdown.js';
 
 interface MessageItemProps {
   message: Message;
+  compactMode: boolean;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, compactMode }) => {
   const isUser = message.role === 'user';
   const isSystem = message.role === 'system';
 
@@ -19,6 +20,36 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
   const { symbol, color } = getRoleIndicator();
 
+  // Compact mode: single line format, no timestamps, minimal spacing
+  if (compactMode) {
+    return (
+      <Box flexDirection="column" marginY={0}>
+        <Box>
+          <Text color={color} bold>
+            {symbol}
+          </Text>
+          <Text color={color} bold>
+            {' '}
+            {isUser ? 'You' : isSystem ? 'System' : 'Claude'}
+          </Text>
+          <Text color="gray">: </Text>
+          <Text wrap="wrap">{formatMarkdown(message.content)}</Text>
+        </Box>
+
+        {message.toolCalls && message.toolCalls.length > 0 && (
+          <Box marginLeft={2}>
+            {message.toolCalls.map((tool, index) => (
+              <Text key={index} color="magenta" dimColor>
+                [{tool.name}]
+              </Text>
+            ))}
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
+  // Normal mode: full format with timestamps and spacing
   return (
     <Box flexDirection="column" marginY={1}>
       <Box>

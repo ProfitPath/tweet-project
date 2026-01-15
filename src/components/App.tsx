@@ -30,6 +30,7 @@ const App: React.FC = () => {
     model: 'claude-3-opus',
     tokensUsed: 0,
     currentDirectory: process.cwd(),
+    compactMode: false,
   });
 
   const [inputValue, setInputValue] = useState('');
@@ -123,7 +124,7 @@ const App: React.FC = () => {
         </Box>
       )}
 
-      <MessageList messages={state.messages} isLoading={state.isLoading} />
+      <MessageList messages={state.messages} isLoading={state.isLoading} compactMode={state.compactMode} />
 
       <InputArea
         value={inputValue}

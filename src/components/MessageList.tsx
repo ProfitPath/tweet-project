@@ -7,21 +7,22 @@ import Spinner from './Spinner.js';
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
+  compactMode: boolean;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, compactMode }) => {
   if (messages.length === 0 && !isLoading) {
     return null;
   }
 
   return (
-    <Box flexDirection="column" marginY={1}>
+    <Box flexDirection="column" marginY={compactMode ? 0 : 1}>
       {messages.map((message) => (
-        <MessageItem key={message.id} message={message} />
+        <MessageItem key={message.id} message={message} compactMode={compactMode} />
       ))}
 
       {isLoading && (
-        <Box marginY={1}>
+        <Box marginY={compactMode ? 0 : 1}>
           <Spinner />
           <Text color="gray" dimColor>
             {' '}Thinking...

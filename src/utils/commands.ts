@@ -60,15 +60,17 @@ const commands: SlashCommand[] = [
     name: 'compact',
     description: 'Toggle compact message display mode',
     handler: (args, state) => {
+      const newCompactMode = !state.compactMode;
       const systemMessage: Message = {
         id: generateId(),
         role: 'system',
-        content: 'Compact mode toggled. (Note: This is a visual preference feature)',
+        content: `Compact mode ${newCompactMode ? 'enabled' : 'disabled'}.`,
         timestamp: new Date(),
       };
 
       return {
         ...state,
+        compactMode: newCompactMode,
         messages: [...state.messages, systemMessage],
       };
     },
