@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, useApp, useInput, useStdin } from 'ink';
 import { Message, ConversationState } from '../types.js';
 import Header from './Header.js';
@@ -7,6 +7,7 @@ import InputArea from './InputArea.js';
 import StatusLine from './StatusLine.js';
 import { handleSlashCommand, getSlashCommands } from '../utils/commands.js';
 import { generateId } from '../utils/helpers.js';
+import { streamMessage, isApiKeyConfigured } from '../utils/claude.js';
 
 const WELCOME_MESSAGE = `╭─────────────────────────────────────────────────────────────╮
 │                                                             │
@@ -19,6 +20,12 @@ const WELCOME_MESSAGE = `╭─────────────────�
 │   /exit - Exit the terminal                                 │
 │                                                             │
 ╰─────────────────────────────────────────────────────────────╯`;
+
+const NO_API_KEY_MESSAGE = `⚠️  No API key found. Set your ANTHROPIC_API_KEY environment variable:
+
+   export ANTHROPIC_API_KEY="your-api-key-here"
+
+   Then restart the terminal.`;
 
 const App: React.FC = () => {
   const { exit } = useApp();
@@ -37,6 +44,16 @@ const App: React.FC = () => {
   const [showWelcome, setShowWelcome] = useState(true);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [inputHistory, setInputHistory] = useState<string[]>([]);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const streamingMessageId = useRef<string | null>(null);
+
+  // Check for API key on mount
+  useEffect(() => {
+    if (!isApiKeyConfigured()) {
+      setApiKeyMissing(true);
+    }
+  }, []);
 
   // Handle keyboard shortcuts
   useInput((input, key) => {
@@ -82,6 +99,21 @@ const App: React.FC = () => {
       return;
     }
 
+    // Check if API key is configured
+    if (apiKeyMissing) {
+      const errorMessage: Message = {
+        id: generateId(),
+        role: 'system',
+        content: NO_API_KEY_MESSAGE,
+        timestamp: new Date(),
+      };
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, errorMessage],
+      }));
+      return;
+    }
+
     // Add user message
     const userMessage: Message = {
       id: generateId(),
@@ -90,28 +122,61 @@ const App: React.FC = () => {
       timestamp: new Date(),
     };
 
+    // Create placeholder for assistant message
+    const assistantMessageId = generateId();
+    streamingMessageId.current = assistantMessageId;
+
     setState(prev => ({
       ...prev,
       messages: [...prev.messages, userMessage],
       isLoading: true,
     }));
 
-    // Simulate assistant response (in a real implementation, this would call the Claude API)
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: generateId(),
-        role: 'assistant',
-        content: getSimulatedResponse(value),
-        timestamp: new Date(),
-      };
+    setStreamingContent('');
 
-      setState(prev => ({
-        ...prev,
-        messages: [...prev.messages, assistantMessage],
-        isLoading: false,
-        tokensUsed: prev.tokensUsed + Math.floor(Math.random() * 500) + 100,
-      }));
-    }, 1000);
+    // Call the real Claude API with streaming
+    const messagesForApi = [...state.messages, userMessage];
+
+    await streamMessage(messagesForApi, state.model, {
+      onText: (text) => {
+        setStreamingContent(prev => prev + text);
+      },
+      onComplete: (fullText, usage) => {
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: fullText,
+          timestamp: new Date(),
+        };
+
+        setState(prev => ({
+          ...prev,
+          messages: [...prev.messages, assistantMessage],
+          isLoading: false,
+          tokensUsed: prev.tokensUsed + usage.inputTokens + usage.outputTokens,
+        }));
+
+        setStreamingContent('');
+        streamingMessageId.current = null;
+      },
+      onError: (error) => {
+        const errorMessage: Message = {
+          id: generateId(),
+          role: 'system',
+          content: `Error: ${error.message}`,
+          timestamp: new Date(),
+        };
+
+        setState(prev => ({
+          ...prev,
+          messages: [...prev.messages, errorMessage],
+          isLoading: false,
+        }));
+
+        setStreamingContent('');
+        streamingMessageId.current = null;
+      },
+    });
   };
 
   return (
@@ -124,7 +189,12 @@ const App: React.FC = () => {
         </Box>
       )}
 
-      <MessageList messages={state.messages} isLoading={state.isLoading} compactMode={state.compactMode} />
+      <MessageList
+        messages={state.messages}
+        isLoading={state.isLoading}
+        compactMode={state.compactMode}
+        streamingContent={streamingContent}
+      />
 
       <InputArea
         value={inputValue}
@@ -137,20 +207,5 @@ const App: React.FC = () => {
     </Box>
   );
 };
-
-function getSimulatedResponse(input: string): string {
-  // Simulated responses for demo purposes
-  const responses = [
-    "I understand your request. In a full implementation, I would process this through the Claude API and provide a meaningful response based on your input.",
-    "This is a simulated response. The actual Claude terminal would connect to Anthropic's API to generate real responses.",
-    "To make this a fully functional clone, you would need to integrate the Anthropic SDK and handle API authentication.",
-  ];
-
-  if (input.toLowerCase().includes('help')) {
-    return `Here are the available commands:\n\n${getSlashCommands().map(cmd => `  **/${cmd.name}** - ${cmd.description}`).join('\n')}`;
-  }
-
-  return responses[Math.floor(Math.random() * responses.length)];
-}
 
 export default App;

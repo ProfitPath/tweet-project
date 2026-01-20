@@ -12,9 +12,14 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.tsx"
   },
-  "keywords": ["cli", "terminal", "claude"],
+  "keywords": [
+    "cli",
+    "terminal",
+    "claude"
+  ],
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "chalk": "^4.1.2",
     "ink": "^4.4.1",
     "ink-text-input": "^5.0.1",
