@@ -49,8 +49,8 @@ const InputArea: React.FC<InputAreaProps> = ({
       return;
     }
 
-    // Add printable characters
-    if (input && input.length === 1) {
+    // Add printable characters (supports paste with multiple chars)
+    if (input && input.length > 0) {
       onChange(value + input);
     }
   });
