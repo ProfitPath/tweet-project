@@ -7,7 +7,7 @@ import InputArea from './InputArea.js';
 import StatusLine from './StatusLine.js';
 import { handleSlashCommand, getSlashCommands } from '../utils/commands.js';
 import { generateId } from '../utils/helpers.js';
-import { streamMessage, isApiKeyConfigured } from '../utils/claude.js';
+import { streamMessage } from '../utils/claude.js';
 
 const WELCOME_MESSAGE = `╭─────────────────────────────────────────────────────────────╮
 │                                                             │
@@ -21,23 +21,21 @@ const WELCOME_MESSAGE = `╭─────────────────�
 │                                                             │
 ╰─────────────────────────────────────────────────────────────╯`;
 
-const NO_API_KEY_MESSAGE = `⚠️  No API key found. Set your ANTHROPIC_API_KEY environment variable:
-
-   export ANTHROPIC_API_KEY="your-api-key-here"
-
-   Then restart the terminal.`;
-
 const App: React.FC = () => {
   const { exit } = useApp();
   const { isRawModeSupported } = useStdin();
 
+  // Check for API key from environment variable
+  const envApiKey = process.env.ANTHROPIC_API_KEY || null;
+
   const [state, setState] = useState<ConversationState>({
     messages: [],
     isLoading: false,
-    model: 'claude-3-opus',
+    model: 'claude-3-sonnet',
     tokensUsed: 0,
     currentDirectory: process.cwd(),
     compactMode: false,
+    apiKey: envApiKey,
   });
 
   const [inputValue, setInputValue] = useState('');
@@ -45,15 +43,8 @@ const App: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [inputHistory, setInputHistory] = useState<string[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
-  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
   const streamingMessageId = useRef<string | null>(null);
-
-  // Check for API key on mount
-  useEffect(() => {
-    if (!isApiKeyConfigured()) {
-      setApiKeyMissing(true);
-    }
-  }, []);
 
   // Handle keyboard shortcuts
   useInput((input, key) => {
@@ -82,6 +73,12 @@ const App: React.FC = () => {
     }
   });
 
+  const handleApiKeySubmit = (value: string) => {
+    if (!value.trim()) return;
+    setState(prev => ({ ...prev, apiKey: value.trim() }));
+    setApiKeyInput('');
+  };
+
   const handleSubmit = async (value: string) => {
     if (!value.trim()) return;
 
@@ -96,21 +93,6 @@ const App: React.FC = () => {
       if (result) {
         setState(result);
       }
-      return;
-    }
-
-    // Check if API key is configured
-    if (apiKeyMissing) {
-      const errorMessage: Message = {
-        id: generateId(),
-        role: 'system',
-        content: NO_API_KEY_MESSAGE,
-        timestamp: new Date(),
-      };
-      setState(prev => ({
-        ...prev,
-        messages: [...prev.messages, errorMessage],
-      }));
       return;
     }
 
@@ -137,7 +119,7 @@ const App: React.FC = () => {
     // Call the real Claude API with streaming
     const messagesForApi = [...state.messages, userMessage];
 
-    await streamMessage(messagesForApi, state.model, {
+    await streamMessage(messagesForApi, state.model, state.apiKey!, {
       onText: (text) => {
         setStreamingContent(prev => prev + text);
       },
@@ -178,6 +160,35 @@ const App: React.FC = () => {
       },
     });
   };
+
+  // Show API key prompt if no key is set
+  if (!state.apiKey) {
+    return (
+      <Box flexDirection="column" width="100%">
+        <Header />
+        <Box marginY={1} flexDirection="column">
+          <Text color="yellow">╭─────────────────────────────────────────────────────────────╮</Text>
+          <Text color="yellow">│                                                             │</Text>
+          <Text color="yellow">│   Welcome to Claude Terminal Clone                          │</Text>
+          <Text color="yellow">│                                                             │</Text>
+          <Text color="yellow">│   Please enter your Anthropic API key to continue.         │</Text>
+          <Text color="yellow">│   Get your key at: https://console.anthropic.com           │</Text>
+          <Text color="yellow">│                                                             │</Text>
+          <Text color="yellow">╰─────────────────────────────────────────────────────────────╯</Text>
+        </Box>
+        <Box>
+          <Text color="green">API Key: </Text>
+          <InputArea
+            value={apiKeyInput}
+            onChange={setApiKeyInput}
+            onSubmit={handleApiKeySubmit}
+            isLoading={false}
+            placeholder="sk-ant-..."
+          />
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" width="100%">

@@ -20,6 +20,7 @@ export interface ConversationState {
   tokensUsed: number;
   currentDirectory: string;
   compactMode: boolean;
+  apiKey: string | null;
 }
 
 export interface SlashCommand {

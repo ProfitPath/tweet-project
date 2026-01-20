@@ -1,9 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Message } from '../types.js';
 
-// Initialize the Anthropic client
-// It automatically uses ANTHROPIC_API_KEY environment variable
-const anthropic = new Anthropic();
+// Create Anthropic client with provided API key
+function createClient(apiKey: string): Anthropic {
+  return new Anthropic({ apiKey });
+}
 
 export interface StreamCallbacks {
   onText: (text: string) => void;
@@ -37,9 +38,11 @@ function getModelId(model: string): string {
 export async function streamMessage(
   messages: Message[],
   model: string,
+  apiKey: string,
   callbacks: StreamCallbacks
 ): Promise<void> {
   try {
+    const anthropic = createClient(apiKey);
     const anthropicMessages = toAnthropicMessages(messages);
 
     if (anthropicMessages.length === 0) {
@@ -74,8 +77,10 @@ export async function streamMessage(
 // Non-streaming version for simpler use cases
 export async function sendMessage(
   messages: Message[],
-  model: string
+  model: string,
+  apiKey: string
 ): Promise<{ content: string; inputTokens: number; outputTokens: number }> {
+  const anthropic = createClient(apiKey);
   const anthropicMessages = toAnthropicMessages(messages);
 
   if (anthropicMessages.length === 0) {
@@ -98,9 +103,4 @@ export async function sendMessage(
     inputTokens: response.usage.input_tokens,
     outputTokens: response.usage.output_tokens,
   };
-}
-
-// Check if API key is configured
-export function isApiKeyConfigured(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
 }

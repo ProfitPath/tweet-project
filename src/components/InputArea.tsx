@@ -6,6 +6,7 @@ interface InputAreaProps {
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
   isLoading: boolean;
+  placeholder?: string;
 }
 
 const InputArea: React.FC<InputAreaProps> = ({
@@ -13,6 +14,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   onChange,
   onSubmit,
   isLoading,
+  placeholder,
 }) => {
   const [cursorVisible, setCursorVisible] = useState(true);
 
@@ -64,7 +66,7 @@ const InputArea: React.FC<InputAreaProps> = ({
         ❯{' '}
       </Text>
       <Text color={isLoading ? 'gray' : 'white'}>
-        {value}
+        {value || (placeholder && <Text dimColor>{placeholder}</Text>)}
         {!isLoading && cursorVisible && <Text inverse> </Text>}
       </Text>
       {isLoading && (
