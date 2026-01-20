@@ -16,6 +16,7 @@ const commands: SlashCommand[] = [
   /exit          Exit the terminal
   /compact       Toggle compact message display
   /model         Show or change the current model
+  /apikey        Set or update your Anthropic API key
   /cost          Show token usage and estimated cost
   /history       Show conversation history summary
 
@@ -108,6 +109,48 @@ Available models:
   • claude-3-haiku
 
 Usage: /model <model-name>`,
+        timestamp: new Date(),
+      };
+
+      return {
+        ...state,
+        messages: [...state.messages, systemMessage],
+      };
+    },
+  },
+  {
+    name: 'apikey',
+    description: 'Set or update your Anthropic API key',
+    handler: (args, state) => {
+      const newKey = args[0];
+
+      if (newKey && newKey.startsWith('sk-ant-')) {
+        const systemMessage: Message = {
+          id: generateId(),
+          role: 'system',
+          content: `API key updated successfully.`,
+          timestamp: new Date(),
+        };
+
+        return {
+          ...state,
+          apiKey: newKey,
+          messages: [...state.messages, systemMessage],
+        };
+      }
+
+      const maskedKey = state.apiKey
+        ? `${state.apiKey.slice(0, 10)}...${state.apiKey.slice(-4)}`
+        : 'Not set';
+
+      const systemMessage: Message = {
+        id: generateId(),
+        role: 'system',
+        content: `**API Key:**
+
+  Current: ${maskedKey}
+
+  Usage: /apikey sk-ant-api03-xxxxx`,
         timestamp: new Date(),
       };
 
